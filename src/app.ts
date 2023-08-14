@@ -7,6 +7,8 @@ app.use(express.urlencoded({ extended: true }));
 
 import userRoutes from '../routes/userRoutes';
 app.use('/api/user', userRoutes);
+app.get('/', (req, res) => res.send('Server is ready'));
+
 
 // if (process.env.NODE_ENV === 'production') {
 //   const __dirname = path.resolve();
