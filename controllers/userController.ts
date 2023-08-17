@@ -57,7 +57,6 @@ const loginUser = asyncHandler(asyncHandler(async (req: any, res: any) => {
       redirect_uri: redirect_uri,
       state: state
     }));
-})
-);
+}));
 
 export { registerUser, loginUser };
