@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import querystring from 'querystring';
+import axios from 'axios';
 
 import generateRandomString from '../utils/generateRandomString';
 
@@ -42,12 +43,13 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
   }
 });
 
-const loginUser = asyncHandler(asyncHandler(async (req: any, res: any) => {
+const loginUser = asyncHandler(async (req: any, res: any) => {
   var client_id = process.env.CLIENT_ID;
   var redirect_uri = process.env.BASE_URL + '/callback';
   console.log(redirect_uri)
   var state = generateRandomString(16);
   var scope = 'user-read-private user-read-email';
+  req.session.state = state;
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -57,6 +59,77 @@ const loginUser = asyncHandler(asyncHandler(async (req: any, res: any) => {
       redirect_uri: redirect_uri,
       state: state
     }));
-}));
+});
 
-export { registerUser, loginUser };
+const callback = asyncHandler(async (req: any, res: any) => {
+  var code = req.query.code || null;
+  var state = req.query.state || null;
+  var expected_state = req.session.state;
+  var redirect_uri = process.env.BASE_URL + '/callback';
+  var client_id = process.env.CLIENT_ID;
+  var client_secret = process.env.CLIENT_SECRET;
+
+
+  if (state === null || state !== expected_state) {
+    res.redirect('/#' +
+      querystring.stringify({
+        error: 'state_mismatch'
+      }));
+  } else {
+    delete req.session.state;
+    const authHeader = 'Basic ' + Buffer.from(`${client_id}:${client_secret}`).toString('base64');
+    var authOptions = {
+      url: 'https://accounts.spotify.com/api/token',
+      method: 'post',
+      data: querystring.stringify({
+        code: code,
+        redirect_uri: redirect_uri,
+        grant_type: 'authorization_code'
+      }),
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    };
+
+    axios(authOptions)
+      .then((response: any) => {
+        if (response.status === 200) {
+
+          const { access_token, refresh_token } = response.data;
+          req.session.access_token = access_token;
+          req.session.refresh_token = refresh_token;
+
+          const options = {
+            url: 'https://api.spotify.com/v1/me',
+            headers: { 'Authorization': `Bearer ${access_token}` },
+            json: true
+          };
+
+          // use the access token to access the Spotify Web API
+          axios.get(options.url, { headers: options.headers })
+            .then(apiRes => {
+              console.log(apiRes.data);
+            })
+            .catch(apiErr => {
+              console.error('Spotify API Error:', apiErr)
+            });
+
+          // we can also pass the token to the browser to make requests from there
+          res.redirect('/#' +
+            querystring.stringify({
+              access_token: access_token,
+              refresh_token: refresh_token
+            }));
+        } else {
+          res.redirect('/#' +
+            querystring.stringify({
+              error: 'invalid_token'
+            }));
+        }
+      });
+  }
+
+})
+
+export { registerUser, loginUser, callback };

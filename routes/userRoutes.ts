@@ -3,7 +3,7 @@ const router = express.Router();
 
 import {
   loginUser,
-  registerUser
+  registerUser,
 } from '../controllers/userController';
 
 router.get('/', (req: any, res: any) => {
