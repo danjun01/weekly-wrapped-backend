@@ -1,20 +1,23 @@
 import express from 'express';
+import sessionMiddleware from '../middleware/sessionMiddleware';
+import userRoutes from '../routes/userRoutes';
+import playlistRoutes from '../routes/playlistRoutes';
+import callbackRoutes from '../routes/callbackRoutes';
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-import userRoutes from '../routes/userRoutes';
+app.use(sessionMiddleware)
+
 app.use('/api/user', userRoutes);
 
-import playlistRoutes from '../routes/playlistRoutes';
 app.use('/api/playlist', playlistRoutes);
 
+app.use('/callback', callbackRoutes);
+
 app.get('/', (req, res) => res.send('Server is ready'));
-app.get('/callback', (req: any, res: any) => {
-  res.status(200).json({ message: 'login successful' });
-});
 
 
 // if (process.env.NODE_ENV === 'production') {
