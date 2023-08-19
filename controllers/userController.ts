@@ -45,7 +45,7 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
 
 const loginUser = asyncHandler(async (req: any, res: any) => {
   var client_id = process.env.CLIENT_ID;
-  var redirect_uri = process.env.BASE_URL + '/callback';
+  var redirect_uri = process.env.BASE_URL + '/spotify/callback';
   console.log(redirect_uri)
   var state = generateRandomString(16);
   var scope = 'user-read-private user-read-email';
@@ -65,7 +65,7 @@ const callback = asyncHandler(async (req: any, res: any) => {
   var code = req.query.code || null;
   var state = req.query.state || null;
   var expected_state = req.session.state;
-  var redirect_uri = process.env.BASE_URL + '/callback';
+  var redirect_uri = process.env.BASE_URL + '/spotify/callback';
   var client_id = process.env.CLIENT_ID;
   var client_secret = process.env.CLIENT_SECRET;
 
@@ -129,7 +129,34 @@ const callback = asyncHandler(async (req: any, res: any) => {
         }
       });
   }
+});
 
-})
+const getRefreshToken = asyncHandler(async (req: any, res: any) => {
+  var client_id = process.env.CLIENT_ID;
+  var client_secret = process.env.CLIENT_SECRET;
+  var refresh_token = req.query.refresh_token;
+  const authHeader = 'Basic ' + Buffer.from(`${client_id}:${client_secret}`).toString('base64');
+  var authOptions = {
+    url: 'https://accounts.spotify.com/api/token',
+    method: 'post',
+    headers: { 'Authorization': authHeader },
+    data: {
+      grant_type: 'refresh_token',
+      refresh_token: refresh_token
+    },
+    json: true
+  };
 
-export { registerUser, loginUser, callback };
+  axios(authOptions)
+    .then((response: any) => {
+      if (response.status === 200) {
+        var access_token = response.data;
+        res.send({
+          'access_token': access_token
+        });
+        req.session.access_token = access_token;
+      }
+    });
+});
+
+export { registerUser, loginUser, callback, getRefreshToken };

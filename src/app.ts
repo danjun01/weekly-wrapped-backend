@@ -2,21 +2,26 @@ import express from 'express';
 import sessionMiddleware from '../middleware/sessionMiddleware';
 import userRoutes from '../routes/userRoutes';
 import playlistRoutes from '../routes/playlistRoutes';
-import callbackRoutes from '../routes/callbackRoutes';
+import spotifyRoutes from '../routes/spotifyRoutes';
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// session storage middleware
 app.use(sessionMiddleware)
 
+// user routes
 app.use('/api/user', userRoutes);
 
+// playlist routes
 app.use('/api/playlist', playlistRoutes);
 
-app.use('/callback', callbackRoutes);
+// spotify callback route
+app.use('/spotify', spotifyRoutes);
 
+// homepage
 app.get('/', (req, res) => res.send('Server is ready'));
 
 
